@@ -1,0 +1,55 @@
+# Generated automatically by Chef
+
+<VirtualHost *:<%= @params[:server_port] || node['apache']['listen_ports'].first %>>
+    ServerName <%= @params[:server_name] %>
+    <% if @params[:server_aliases] -%>
+    ServerAlias <% @params[:server_aliases].each do |a| %><%= a %> <% end %>
+    <% end -%>
+    DocumentRoot <%= @params[:docroot] %>
+
+    <Directory "/">
+        Options FollowSymLinks
+        AllowOverride None
+    </Directory>
+
+    <Directory "<%= @params[:docroot] %>">
+        Options <%= [@params[:directory_options] || "FollowSymLinks" ].flatten.join " " %>
+        AllowOverride <%= [@params[:allow_override] || "None" ].flatten.join " " %>
+        Order allow,deny
+        Allow from all
+    </Directory>
+
+    <Location "/server-status">
+        SetHandler server-status
+
+        Order deny,allow
+        Deny from all
+        Allow from <%= node['apache']['status_allow_list'] %>
+    </Location>
+
+    ErrorLog <%= node['apache']['log_dir'] %>/<%= @params[:name] %>-error.log
+    CustomLog <%= node['apache']['log_dir'] %>/<%= @params[:name] %>-access.log combined
+
+    SetEnv ENVIRONMENT "<%= node.chef_environment %>"
+
+    # Custom 404 to keep things lean & mean
+    ErrorDocument 404 /404.html
+
+    <IfModule mod_rewrite.c>
+        RewriteEngine On
+        RewriteLog <%= node['apache']['log_dir'] %>/<%= @application_name %>-rewrite.log
+        RewriteLogLevel 0
+
+        # Canonical host, <%= @params[:server_name] %>
+        RewriteCond %{HTTP_HOST}   !^(localhost|127.0.0.1)
+        RewriteCond %{HTTP_HOST}   !^<%= @params[:server_name] %>$
+        RewriteCond %{REQUEST_METHOD} !^OPTIONS$
+        RewriteRule ^/(.*)         https://<%= @params[:server_name] %>/$1 [R=301,NC,L]
+
+        # Unless a real directory or file exists, rewrite all URLs to index.html
+        RewriteCond %{REQUEST_URI}                      !=/server-status
+        RewriteCond %{DOCUMENT_ROOT}%{REQUEST_FILENAME} !-f
+        RewriteCond %{DOCUMENT_ROOT}%{REQUEST_FILENAME} !-d
+        RewriteRule . /index.html [NC,QSA,L]
+    </IfModule>
+</VirtualHost>
