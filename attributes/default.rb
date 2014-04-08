@@ -6,6 +6,7 @@ set['et_accounts_app']['docroot'] = "#{node['et_accounts_app']['deploy_to']}/cur
 
 domain_prefix = ''
 domain_prefix = "#{node.chef_environment}-" if node.chef_environment != 'prod'
+domain_prefix = 'stage-' if node.chef_environment == 'stage-newvpc'
 
 set['et_accounts_app']['server_name'] = "#{domain_prefix}accounts.evertrue.com"
 
