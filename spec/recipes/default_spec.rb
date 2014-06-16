@@ -10,6 +10,10 @@ describe 'et_accounts_app::default' do
     end.converge(described_recipe)
   end
 
+  before do
+    stub_command('[ -f /usr/local/share/node-version ] && [ "$(git rev-parse HEAD)" = "$(cat /usr/local/share/node-version)" ]').and_return(true)
+  end
+
   %w(
     apt::default
     node::default
